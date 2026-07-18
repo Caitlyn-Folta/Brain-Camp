@@ -393,14 +393,20 @@ const DRILL_LENGTH = 5;
 function buildDrill(subject, tier, theme, level) {
   const tasks = [];
   for (let i = 0; i < DRILL_LENGTH; i++) {
-    if (subject === "math") tasks.push(mathQuestion(tier, theme, level));
-    else if (subject === "reading") tasks.push(readingQuestion(tier, theme));
-    else tasks.push(writingTask(tier, i));
+    let t;
+    if (subject === "math") t = mathQuestion(tier, theme, level);
+    else if (subject === "reading") t = readingQuestion(tier, theme);
+    else t = writingTask(tier, i);
+    t.subject = subject;
+    tasks.push(t);
   }
   return tasks;
 }
 
 // Matches use only tap-to-answer questions (math + reading mix).
 function matchQuestion(tier, theme, level) {
-  return Math.random() < 0.5 ? mathQuestion(tier, theme, level) : readingQuestion(tier, theme);
+  const subject = Math.random() < 0.5 ? "math" : "reading";
+  const t = subject === "math" ? mathQuestion(tier, theme, level) : readingQuestion(tier, theme);
+  t.subject = subject;
+  return t;
 }

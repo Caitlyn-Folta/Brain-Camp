@@ -92,6 +92,7 @@ function newProfile() {
   return {
     id: "p" + Date.now() + Math.floor(Math.random() * 999),
     name: "",
+    path: "wilder", // "wilder" (≈5) or "grey" (≈7) — sets difficulty
     age: 5,
     themeId: "soccer",
     outfitId: null,
@@ -101,18 +102,58 @@ function newProfile() {
     stars: 0,
     stickers: [],
     trophies: [],
+    gear: [],      // earned power-up gear ids
     unlockedOutfits: [],
     unlockedItems: [],
-    stats: { drills: 0, wins: 0, mathRight: 0, readRight: 0, writeDrills: 0 },
+    skills: { math: 0, reading: 0, writing: 0 }, // XP per skill
+    history: [],   // {d, kind:"drill"|"match", subject?, right?, total?, won?}
+    stats: { drills: 0, wins: 0, mathRight: 0, readRight: 0, writeDrills: 0, firstTry: 0, rightTotal: 0, goals: 0 },
   };
 }
 
-const tierOf = (p) => (p.age <= 5 ? "little" : "big");
+// Fill in fields for profiles saved by older versions of the game.
+function normalizeProfile(p) {
+  if (!p.path) p.path = p.age <= 5 ? "wilder" : "grey";
+  if (!p.skills) p.skills = { math: 0, reading: 0, writing: 0 };
+  if (!p.history) p.history = [];
+  if (!p.gear) p.gear = [];
+  const s = p.stats || (p.stats = {});
+  for (const k of ["drills", "wins", "mathRight", "readRight", "writeDrills", "firstTry", "rightTotal", "goals"]) {
+    if (typeof s[k] !== "number") s[k] = 0;
+  }
+  return p;
+}
+
+const pathOf = (p) => PATHS[p.path] || (p.age <= 5 ? PATHS.wilder : PATHS.grey);
+const tierOf = (p) => pathOf(p).tier;
 const themeOf = (p) => THEMES[p.themeId] || THEMES.soccer;
 const levelOf = (p) => 1 + Math.floor((p.stars || 0) / 25);
 function outfitOf(p) {
   const t = themeOf(p);
   return t.outfits.find((o) => o.id === p.outfitId) || t.outfits[0];
+}
+
+// Skill levels: Wilder needs less XP per level than Grey (age-calibrated).
+function skillLevel(p, subject) {
+  const per = SKILL_XP_PER_LEVEL[tierOf(p)];
+  const xp = (p.skills && p.skills[subject]) || 0;
+  return { level: 1 + Math.floor(xp / per), pct: Math.round(((xp % per) / per) * 100), xp, per };
+}
+
+// Central place to record a correct answer: stats + skill XP.
+function recordAnswer(subject, firstTry) {
+  if (!P) return;
+  P.stats.rightTotal++;
+  if (firstTry) P.stats.firstTry++;
+  if (subject === "math") P.stats.mathRight++;
+  if (subject === "reading") P.stats.readRight++;
+  P.skills[subject] = (P.skills[subject] || 0) + (firstTry ? 2 : 1);
+}
+
+function pushHistory(entry) {
+  entry.d = Date.now();
+  P.history.push(entry);
+  if (P.history.length > 150) P.history = P.history.slice(-150);
 }
 
 /* --------------------------- avatar --------------------------- */
@@ -208,22 +249,52 @@ function checkTrophies() {
   return earned;
 }
 
-function showTrophyPopups(trophies, done) {
-  if (!trophies.length) { done && done(); return; }
-  const t = trophies.shift();
+// Value of a mission stat for gear checks.
+function statValue(key) {
+  if (key === "stars") return P.stars;
+  return P.stats[key] || 0;
+}
+
+// Power-up gear: missions are age-calibrated (simpler for Wilder Path).
+function checkGear() {
+  const t = themeOf(P);
+  const tier = tierOf(P);
+  const earned = [];
+  for (const g of t.gear || []) {
+    if (P.gear.includes(g.id)) continue;
+    const m = g.missions[tier];
+    if (m && statValue(m.stat) >= m.need) {
+      P.gear.push(g.id);
+      earned.push({ emoji: g.emoji, name: g.name, desc: g.power, title: "Power-Up Unlocked!", say: `Power up! You earned the ${g.name}!` });
+    }
+  }
+  return earned;
+}
+
+// Collect all new awards (trophies + gear) in one popup queue.
+function checkAwards() {
+  return [
+    ...checkTrophies().map((t) => ({ emoji: t.emoji, name: t.name, desc: t.desc, title: "New Trophy!", say: `New trophy! ${t.name}!` })),
+    ...checkGear(),
+  ];
+}
+
+function showTrophyPopups(awards, done) {
+  if (!awards.length) { done && done(); return; }
+  const a = awards.shift();
   sfx.fanfare();
   burstConfetti(["🏆", "⭐", "🎉"]);
-  speak(`New trophy! ${t.name}!`);
+  speak(a.say || `New trophy! ${a.name}!`);
   showModal(`
-    <div class="modal-emoji">${t.emoji}</div>
-    <h2>New Trophy!</h2>
-    <div class="reward-line">${esc(t.name)}</div>
-    <p>${esc(t.desc)}</p>
+    <div class="modal-emoji">${a.emoji}</div>
+    <h2>${esc(a.title || "New Trophy!")}</h2>
+    <div class="reward-line">${esc(a.name)}</div>
+    <p>${esc(a.desc)}</p>
     <button class="btn gold big" id="trophy-ok">Yay! 🎉</button>
   `);
   document.getElementById("trophy-ok").onclick = () => {
     hideModal();
-    showTrophyPopups(trophies, done);
+    showTrophyPopups(awards, done);
   };
 }
 
@@ -244,13 +315,15 @@ function showHome() {
     </div>
     <div class="player-list">
       ${players.map((p) => {
+        normalizeProfile(p);
         const t = THEMES[p.themeId] || THEMES.soccer;
+        const pa = pathOf(p);
         return `
         <button class="player-card" data-id="${p.id}">
           ${avatarHTML(p, 74)}
           <span class="who">
             <span class="name">${esc(p.name)}</span>
-            <span class="meta">${t.name} • Level ${levelOf(p)} • ⭐ ${p.stars}</span>
+            <span class="meta">${pa.emoji} ${pa.name} • ${t.name} • Lv ${levelOf(p)} • ⭐ ${p.stars}</span>
           </span>
           <span class="theme-emoji">${t.emoji}</span>
         </button>`;
@@ -267,7 +340,7 @@ function showHome() {
   $screen.querySelectorAll(".player-card").forEach((el) => {
     el.onclick = () => {
       sfx.click();
-      P = loadPlayers().find((p) => p.id === el.dataset.id);
+      P = normalizeProfile(loadPlayers().find((p) => p.id === el.dataset.id));
       speak(`Welcome back, ${P.name}!`);
       showHub();
     };
@@ -317,24 +390,28 @@ function createStepName() {
     <div class="card center">
       <p style="font-weight:800">Type your name or nickname:</p>
       <input type="text" id="name-input" maxlength="14" placeholder="Super name!" value="${esc(draft.name)}" autocomplete="off">
-      <p style="font-weight:800;margin-top:18px">How old are you?</p>
-      <div class="grid3" id="age-grid">
-        ${[4, 5, 6, 7, 8].map((a) => `
-          <button class="pick-tile ${draft.age === a ? "selected" : ""}" data-age="${a}">
-            <span class="big-emoji">${a <= 5 ? "🐣" : "🦖"}</span>
-            <span class="label">${a}</span>
+      <p style="font-weight:800;margin-top:18px">Pick your path:</p>
+      <div class="grid2" id="path-grid">
+        ${Object.values(PATHS).map((pa) => `
+          <button class="pick-tile ${draft.path === pa.id ? "selected" : ""}" data-path="${pa.id}">
+            <span class="big-emoji">${pa.emoji}</span>
+            <span class="label">${esc(pa.name)}</span>
+            <span class="sub">${esc(pa.line)}</span>
           </button>`).join("")}
       </div>
+      <p class="subtitle" style="font-size:.85rem;margin-top:10px">You can switch paths any time from your home screen.</p>
     </div>
     <button class="btn green big" id="next">Next ➡️</button>
   `;
   document.getElementById("back").onclick = showHome;
   const input = document.getElementById("name-input");
-  $screen.querySelectorAll("[data-age]").forEach((b) => {
+  $screen.querySelectorAll("[data-path]").forEach((b) => {
     b.onclick = () => {
       sfx.click();
-      draft.age = Number(b.dataset.age);
-      $screen.querySelectorAll("[data-age]").forEach((x) => x.classList.remove("selected"));
+      draft.path = b.dataset.path;
+      draft.age = PATHS[draft.path].age;
+      speak(`${PATHS[draft.path].name}! ${PATHS[draft.path].line}`);
+      $screen.querySelectorAll("[data-path]").forEach((x) => x.classList.remove("selected"));
       b.classList.add("selected");
     };
   });
@@ -478,6 +555,7 @@ function createStepPhoto() {
 /* --------------------------- hub --------------------------- */
 function showHub() {
   const t = themeOf(P);
+  const pa = pathOf(P);
   setThemeColors(t);
   saveCurrent();
   $screen.innerHTML = `
@@ -491,19 +569,51 @@ function showHub() {
       ${avatarHTML(P, 140, true)}
       <h2 style="margin:6px 0 0">${esc(P.name)}</h2>
       <div class="subtitle">${t.emoji} ${t.name} • Level ${levelOf(P)}</div>
+      <button class="chip" id="path-chip" style="border:none;cursor:pointer;font-family:inherit;margin-top:8px">${pa.emoji} ${esc(pa.name)}</button>
     </div>
     <div class="btn-col">
       <button class="btn green big" id="go-train">💪 ${esc(t.terms.train)}</button>
       <button class="btn blue big" id="go-match">${t.terms.match.scoreEmoji} Play: ${esc(t.terms.match.name)}</button>
-      <button class="btn purple big" id="go-locker">🏆 My Prizes &amp; ${esc(t.terms.hub)}</button>
+      <button class="btn purple big" id="go-progress">📈 My Progress</button>
+      <button class="btn purple big" style="background:#8e44ad" id="go-locker">🏆 My Prizes &amp; ${esc(t.terms.hub)}</button>
       <button class="btn gold big" id="go-shop">🛍️ ${esc(t.terms.shop)}</button>
     </div>
   `;
   document.getElementById("back").onclick = () => { sfx.click(); showHome(); };
   document.getElementById("go-train").onclick = () => { sfx.click(); showTrainMenu(); };
   document.getElementById("go-match").onclick = () => { sfx.click(); startMatch(); };
+  document.getElementById("go-progress").onclick = () => { sfx.click(); showProgress(); };
   document.getElementById("go-locker").onclick = () => { sfx.click(); showLocker(); };
   document.getElementById("go-shop").onclick = () => { sfx.click(); showShop(); };
+  document.getElementById("path-chip").onclick = () => { sfx.click(); showPathSwitch(); };
+}
+
+// Grown-up (or brave kid) can move a player between paths any time.
+function showPathSwitch() {
+  const current = pathOf(P);
+  showModal(`
+    <div class="modal-emoji">${current.emoji}</div>
+    <h2>Pick a Path</h2>
+    <p>This changes how hard the questions are.</p>
+    <div class="btn-col">
+      ${Object.values(PATHS).map((pa) => `
+        <button class="btn ${pa.id === current.id ? "gold" : "blue"} big" data-set-path="${pa.id}">
+          ${pa.emoji} ${esc(pa.name)} ${pa.id === current.id ? "(now)" : ""}
+        </button>`).join("")}
+      <button class="btn ghost" id="path-cancel">Never mind</button>
+    </div>
+  `);
+  $overlay.querySelectorAll("[data-set-path]").forEach((b) => {
+    b.onclick = () => {
+      P.path = b.dataset.setPath;
+      P.age = PATHS[P.path].age;
+      saveCurrent();
+      hideModal();
+      speak(`${PATHS[P.path].name}! ${PATHS[P.path].line}`);
+      showHub();
+    };
+  });
+  document.getElementById("path-cancel").onclick = hideModal;
 }
 
 /* ------------------------ train menu ------------------------ */
@@ -566,28 +676,21 @@ function renderDrillTask() {
     </div>
     ${drillProgressHTML()}`;
 
+  const onDone = (r) => {
+    if (r.right) {
+      drill.correct++;
+      recordAnswer(drill.subject, r.firstTry);
+    }
+    drill.idx++;
+    renderDrillTask();
+  };
   if (task.kind === "choice") {
-    renderChoiceTask(task, header, (wasRight) => {
-      if (wasRight) {
-        drill.correct++;
-        if (drill.subject === "math") P.stats.mathRight++;
-        if (drill.subject === "reading") P.stats.readRight++;
-      }
-      drill.idx++;
-      renderDrillTask();
-    });
+    renderChoiceTask(task, header, onDone);
   } else if (task.kind === "tiles") {
-    renderTilesTask(task, header, (wasRight) => {
-      if (wasRight) drill.correct++;
-      drill.idx++;
-      renderDrillTask();
-    });
+    renderTilesTask(task, header, onDone);
   } else {
-    renderTraceTask(task, header, () => {
-      drill.correct++; // tracing always counts — effort is the win at this age
-      drill.idx++;
-      renderDrillTask();
-    });
+    // Tracing always counts — effort is the win at this age.
+    renderTraceTask(task, header, () => onDone({ right: true, firstTry: true }));
   }
   document.getElementById("quit").onclick = () => {
     speechSynthesis && speechSynthesis.cancel();
@@ -603,8 +706,9 @@ function finishDrill() {
   giveStars(stars);
   P.stats.drills++;
   if (drill.subject === "writing") P.stats.writeDrills++;
+  pushHistory({ kind: "drill", subject: drill.subject, right: drill.correct, total: drill.tasks.length });
   const sticker = drill.correct >= 4 ? maybeAwardSticker(t) : null;
-  const trophies = checkTrophies();
+  const awards = checkAwards();
   saveCurrent();
 
   sfx.fanfare();
@@ -630,7 +734,7 @@ function finishDrill() {
   document.getElementById("again").onclick = () => { sfx.whistle(); startDrill(drill.subject); };
   document.getElementById("more").onclick = showTrainMenu;
   document.getElementById("home").onclick = showHub;
-  showTrophyPopups(trophies);
+  showTrophyPopups(awards);
 }
 
 /* -------------------- choice task renderer -------------------- */
@@ -664,7 +768,7 @@ function renderChoiceTask(task, headerHTML, done) {
         const praise = pick(PRAISE_WORDS);
         praisePop(praise);
         speak(praise);
-        setTimeout(() => done(attempts === 0), 950);
+        setTimeout(() => done({ right: true, firstTry: attempts === 0 }), 950);
       } else {
         attempts++;
         btn.classList.add("wrong");
@@ -678,7 +782,7 @@ function renderChoiceTask(task, headerHTML, done) {
             if (task.choices[Number(b.dataset.i)].value === task.answer) b.classList.add("reveal");
           });
           speak(`The answer was ${task.answer}. You'll get the next one!`);
-          setTimeout(() => done(false), 1600);
+          setTimeout(() => done({ right: false, firstTry: false }), 1600);
         } else {
           praisePop(pick(GENTLE_WORDS), true);
           speak(pick(GENTLE_WORDS));
@@ -758,7 +862,7 @@ function renderTilesTask(task, headerHTML, done) {
       praisePop(pick(PRAISE_WORDS));
       speak(`Yes! ${task.word.split("").join(", ")} spells ${task.word}!`);
       burstConfetti(["✨", "⭐"], 12);
-      setTimeout(() => done(attempts === 0), 1300);
+      setTimeout(() => done({ right: true, firstTry: attempts === 0 }), 1300);
     } else {
       attempts++;
       sfx.wrong();
@@ -768,7 +872,7 @@ function renderTilesTask(task, headerHTML, done) {
         // Show the correct word, then move on.
         speak(`Good try! The word is spelled ${task.word.split("").join(", ")}.`);
         $slots.innerHTML = task.word.split("").map((L) => `<div class="tile-slot filled">${L}</div>`).join("");
-        setTimeout(() => done(false), 1900);
+        setTimeout(() => done({ right: false, firstTry: false }), 1900);
       } else {
         praisePop(pick(GENTLE_WORDS), true);
         speak("Almost! Try moving the letters around.");
@@ -916,14 +1020,14 @@ function matchHeaderHTML() {
 function renderMatchQuestion() {
   const t = themeOf(P);
   const task = matchQuestion(tierOf(P), t, levelOf(P));
-  renderChoiceTask(task, matchHeaderHTML(), (wasRight) => {
-    if (wasRight) {
-      if (task.speakText && /plus|minus|how many|makes/i.test(task.speakText)) P.stats.mathRight++;
-      else P.stats.readRight++;
+  renderChoiceTask(task, matchHeaderHTML(), (r) => {
+    if (r.right) {
+      recordAnswer(task.subject, r.firstTry);
       match.steps++;
       if (match.steps >= 3) {
         match.steps = 0;
         match.playerScore++;
+        P.stats.goals++;
         return showScoreFlash(true);
       }
     } else {
@@ -982,7 +1086,8 @@ function finishMatch(won) {
     P.stats.wins++;
     sticker = maybeAwardSticker(t);
   }
-  const trophies = checkTrophies();
+  pushHistory({ kind: "match", won: !!won, score: `${match.playerScore}-${match.rivalScore}` });
+  const awards = checkAwards();
   saveCurrent();
 
   if (won) {
@@ -1014,7 +1119,86 @@ function finishMatch(won) {
   if (trainBtn) trainBtn.onclick = showTrainMenu;
   document.getElementById("again").onclick = startMatch;
   document.getElementById("home").onclick = showHub;
-  showTrophyPopups(trophies);
+  showTrophyPopups(awards);
+}
+
+/* ======================== MY PROGRESS ======================== */
+
+// Compare recent drill accuracy vs earlier drills for one subject.
+function improvementFor(subject) {
+  const drills = P.history.filter((h) => h.kind === "drill" && h.subject === subject && h.total);
+  if (drills.length < 2) return { enough: false, count: drills.length };
+  const recent = drills.slice(-3);
+  const earlier = drills.slice(0, -3).length ? drills.slice(0, -3) : [drills[0]];
+  const pct = (list) => Math.round((list.reduce((s, h) => s + h.right, 0) / list.reduce((s, h) => s + h.total, 0)) * 100);
+  const now = pct(recent);
+  const before = pct(earlier);
+  return { enough: true, now, before, trend: now > before ? "up" : now < before ? "down" : "flat" };
+}
+
+function showProgress() {
+  const t = themeOf(P);
+  const pa = pathOf(P);
+  const subjectLabel = { math: "Math", reading: "Reading", writing: "Writing" };
+  const trendBits = {
+    up: { emoji: "📈", note: "You're getting better!" },
+    flat: { emoji: "➡️", note: "Steady — keep it up!" },
+    down: { emoji: "💪", note: "Keep practicing, champ!" },
+  };
+  $screen.innerHTML = `
+    <div class="topbar">
+      <button class="btn ghost icon" id="back">⬅️</button>
+      <h2>📈 My Progress</h2>
+    </div>
+    <div class="card center">
+      ${avatarHTML(P, 100)}
+      <div style="font-weight:800">${esc(P.name)} • ${pa.emoji} ${esc(pa.name)}</div>
+    </div>
+    <div class="card">
+      <h3>⭐ My Skills</h3>
+      ${["math", "reading", "writing"].map((s) => {
+        const sk = t.skills[s];
+        const lv = skillLevel(P, s);
+        return `
+        <div class="skill-row">
+          <div class="skill-head">
+            <span>${sk.emoji} <b>${esc(sk.name)}</b> <span class="skill-sub">(${subjectLabel[s]})</span></span>
+            <span class="skill-lv">Lv ${lv.level}</span>
+          </div>
+          <div class="skill-bar"><div class="skill-fill" style="width:${lv.pct}%"></div></div>
+        </div>`;
+      }).join("")}
+      <div class="skill-sub" style="margin-top:6px">Answer questions to level up your moves!</div>
+    </div>
+    <div class="card">
+      <h3>🚀 Am I improving?</h3>
+      ${["math", "reading", "writing"].map((s) => {
+        const sk = t.skills[s];
+        const imp = improvementFor(s);
+        if (!imp.enough) {
+          return `<div class="trophy-row"><span class="t-emoji">${sk.emoji}</span>
+            <span><div class="t-name">${esc(sk.name)}</div>
+            <div class="t-desc">Play ${2 - imp.count} more ${subjectLabel[s].toLowerCase()} drill${2 - imp.count === 1 ? "" : "s"} to see your trend!</div></span></div>`;
+        }
+        const tb = trendBits[imp.trend];
+        return `<div class="trophy-row"><span class="t-emoji">${tb.emoji}</span>
+          <span><div class="t-name">${esc(sk.name)}: ${imp.now}% lately</div>
+          <div class="t-desc">Before: ${imp.before}% — ${tb.note}</div></span></div>`;
+      }).join("")}
+    </div>
+    <div class="card">
+      <h3>🧮 Totals</h3>
+      <div class="totals-grid">
+        <div class="total-box"><b>${P.stats.drills}</b><span>drills done</span></div>
+        <div class="total-box"><b>${P.stats.wins}</b><span>matches won</span></div>
+        <div class="total-box"><b>${P.stats.rightTotal}</b><span>right answers</span></div>
+        <div class="total-box"><b>${P.stats.firstTry}</b><span>first-try ⚡</span></div>
+        <div class="total-box"><b>${P.stars}</b><span>stars ⭐</span></div>
+        <div class="total-box"><b>${P.gear.length}/${(t.gear || []).length}</b><span>power-ups</span></div>
+      </div>
+    </div>
+  `;
+  document.getElementById("back").onclick = showHub;
 }
 
 /* ===================== LOCKER / TROPHIES ===================== */
@@ -1041,6 +1225,24 @@ function showLocker() {
             }).join("")
           : `<span class="empty-note" style="font-size:1rem">Win coins and visit the ${esc(t.terms.shop)}!</span>`}
       </div>
+    </div>
+    <div class="card">
+      <h3>⚡ Power-Up Gear</h3>
+      ${(t.gear || []).map((g) => {
+        const owned = P.gear.includes(g.id);
+        const m = g.missions[tierOf(P)];
+        const have = Math.min(statValue(m.stat), m.need);
+        return `
+        <div class="trophy-row ${owned ? "" : "locked"}">
+          <span class="t-emoji">${g.emoji}</span>
+          <span style="flex:1">
+            <div class="t-name">${esc(g.name)}</div>
+            <div class="t-desc">${owned ? esc(g.power) : `Mission: ${esc(m.desc)}`}</div>
+            ${owned ? "" : `<div class="mission-bar"><div class="mission-fill" style="width:${Math.round((have / m.need) * 100)}%"></div></div>`}
+          </span>
+          <span style="font-weight:800;font-size:.85rem">${owned ? "✅" : `${have}/${m.need}`}</span>
+        </div>`;
+      }).join("")}
     </div>
     <div class="card">
       <h3>🎨 Sticker Book</h3>
@@ -1156,12 +1358,12 @@ function buyThing(cost, apply, render) {
   }
   P.coins -= cost;
   apply();
-  const trophies = checkTrophies();
+  const awards = checkAwards();
   saveCurrent();
   sfx.coin();
   burstConfetti(["🪙", "🎉"], 16);
   render();
-  showTrophyPopups(trophies);
+  showTrophyPopups(awards);
 }
 
 /* ============================ boot ============================ */

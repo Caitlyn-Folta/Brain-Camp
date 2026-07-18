@@ -17,9 +17,13 @@ after loading. Works great on a tablet or phone (touch-friendly, big buttons).
 ## What's inside
 
 ### 1. Create your player
-- Type a name or nickname and pick an age (4–8). Age sets the difficulty:
-  **5-and-under** gets counting, letters, and 3-letter words; **7-and-up**
-  gets bigger sums, spelling, and word problems.
+- Type a name or nickname and pick a learning path:
+  - 🦁 **Wilder Path** (age ~5): counting, letter sounds, sight words,
+    3-letter words — and skills level up faster.
+  - 🐺 **Grey Path** (age ~7): sums to 100, spelling, opposites, and
+    word problems.
+  Paths can be switched any time from the player's home screen (tap the
+  path badge), so the game grows with each kid.
 - **Pick your adventure:** Soccer Star ⚽, Football Hero 🏈, Hoops Hero 🏀,
   Pirate Adventure 🏴‍☠️, or Monster Quest 🐉.
 - **Pick your jersey:** soccer jerseys are inspired by today's most famous
@@ -54,14 +58,34 @@ one-tap rematch — losing is just a nudge back to training.
 ### 4. Earn — rewards every 30–60 seconds
 - 🪙 **Coins** after every drill and match
 - ⭐ **Stars** that level your player up (questions get a bit harder as you level)
+- ⚡ **Power-up gear** earned through missions: Golden Cleat, Lightning
+  Soccer Ball, Rocket Shot, Super Save Gloves, Rainbow Dribble (each theme
+  has its own set). Missions are age-calibrated — Wilder Path missions are
+  simpler ("finish 2 drills") than Grey Path ones ("get 20 first-try
+  answers"), so both kids earn gear at a satisfying pace.
+- 📈 **Skill-ups for soccer moves**: correct answers earn XP toward
+  Shooting (math), Passing (reading), and Dribbling (writing) skill levels,
+  shown as progress bars. Wilder Path needs less XP per level than Grey.
 - 🎨 **Stickers** for the sticker book
 - 🏆 **Trophies** for milestones (first drill, math star, champion…)
 - 🛍️ A **shop** to spend coins on legend jerseys and fun stadium items
   displayed in your kid's own stadium/ship/camp
 
+### 5. Track — see each kid improve
+Every kid's player saves its own progress separately (perfect for siblings
+sharing a tablet). The **My Progress** screen shows:
+- Skill levels and progress bars for each soccer move
+- "Am I improving?" — recent drill accuracy vs. earlier drills per subject,
+  with an encouraging trend note
+- Totals: drills done, matches won, right answers, first-try answers,
+  stars, and power-ups collected
+
 ## For grown-ups
 - Multiple kids can each have their own player on the same device (great for
-  a 5- and a 7-year-old sharing a tablet).
+  a 5- and a 7-year-old sharing a tablet) — progress, rewards, and stats are
+  saved per player.
+- The "My Progress" screen doubles as your window into how each kid is doing:
+  accuracy trends per subject show whether practice is paying off.
 - All progress and photos stay in the browser's local storage on your device.
 - "Grown-ups: manage players" on the home screen lets you delete a profile.
 

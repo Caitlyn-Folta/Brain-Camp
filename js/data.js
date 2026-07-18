@@ -3,6 +3,31 @@
    Themes (adventures), jerseys/outfits, words, trophies, shop.
    ============================================================ */
 
+/* ---------- Learning paths (difficulty calibration) ---------- */
+// Wilder Path = younger kids (~5): counting, letters, 3-letter words.
+// Grey Path   = older kids (~7): bigger math, spelling, word problems.
+const PATHS = {
+  wilder: {
+    id: "wilder",
+    name: "Wilder Path",
+    emoji: "🦁",
+    age: 5,
+    tier: "little",
+    line: "Just right for age 5 — counting, letters, and first words!",
+  },
+  grey: {
+    id: "grey",
+    name: "Grey Path",
+    emoji: "🐺",
+    age: 7,
+    tier: "big",
+    line: "Just right for age 7 — bigger math, spelling, and word problems!",
+  },
+};
+
+// XP needed per skill level — Wilder levels up faster than Grey.
+const SKILL_XP_PER_LEVEL = { little: 8, big: 14 };
+
 const THEMES = {
   soccer: {
     id: "soccer",
@@ -43,6 +68,23 @@ const THEMES = {
       { id: "kerr", label: "Sam Kerr", sub: "Blue #20", number: "20", colors: { body: "#034694", sleeve: "#ffffff", text: "#ffffff" } },
       { id: "zlatan", label: "Zlatan", sub: "Legend #11", number: "11", colors: { body: "#fb090b", sleeve: "#000000", text: "#ffffff" }, cost: 80 },
       { id: "bale", label: "Bale", sub: "Legend #11", number: "11", colors: { body: "#da291c", sleeve: "#ffffff", text: "#ffffff" }, cost: 80 },
+    ],
+    skills: {
+      math: { name: "Shooting", emoji: "🥅" },
+      reading: { name: "Passing", emoji: "🎯" },
+      writing: { name: "Dribbling", emoji: "⚽" },
+    },
+    gear: [
+      { id: "golden-cleat", emoji: "🥾", name: "Golden Cleat", power: "Super speed on the field!",
+        missions: { little: { desc: "Finish 2 drills", stat: "drills", need: 2 }, big: { desc: "Finish 5 drills", stat: "drills", need: 5 } } },
+      { id: "lightning-ball", emoji: "⚡", name: "Lightning Soccer Ball", power: "Your shots zoom like lightning!",
+        missions: { little: { desc: "Get 8 answers right", stat: "rightTotal", need: 8 }, big: { desc: "Get 20 first-try answers", stat: "firstTry", need: 20 } } },
+      { id: "rocket-shot", emoji: "🚀", name: "Rocket Shot", power: "Unstoppable rocket kicks!",
+        missions: { little: { desc: "Score 3 goals in matches", stat: "goals", need: 3 }, big: { desc: "Win 2 matches", stat: "wins", need: 2 } } },
+      { id: "super-gloves", emoji: "🧤", name: "Super Save Gloves", power: "Nothing gets past you!",
+        missions: { little: { desc: "Earn 15 stars", stat: "stars", need: 15 }, big: { desc: "Earn 40 stars", stat: "stars", need: 40 } } },
+      { id: "rainbow-dribble", emoji: "🌈", name: "Rainbow Dribble", power: "Dazzling rainbow moves!",
+        missions: { little: { desc: "Finish 1 writing drill", stat: "writeDrills", need: 1 }, big: { desc: "Finish 3 writing drills", stat: "writeDrills", need: 3 } } },
     ],
     stickers: ["⚽", "🥅", "🏆", "🥇", "👟", "🧤", "📣", "🎉", "🌟", "🔥", "🦁", "⚡"],
     shopItems: [
@@ -93,6 +135,23 @@ const THEMES = {
       { id: "brady", label: "Brady", sub: "Legend #12", number: "12", colors: { body: "#d50a0a", sleeve: "#34302b", text: "#ffffff" }, cost: 80 },
       { id: "watt", label: "J.J. Watt", sub: "Legend #99", number: "99", colors: { body: "#000000", sleeve: "#ffb612", text: "#ffb612" }, cost: 80 },
     ],
+    skills: {
+      math: { name: "Throwing", emoji: "🏈" },
+      reading: { name: "Play-Calling", emoji: "📋" },
+      writing: { name: "Footwork", emoji: "👟" },
+    },
+    gear: [
+      { id: "golden-cleats", emoji: "🥾", name: "Golden Cleats", power: "Super speed downfield!",
+        missions: { little: { desc: "Finish 2 drills", stat: "drills", need: 2 }, big: { desc: "Finish 5 drills", stat: "drills", need: 5 } } },
+      { id: "lightning-ball", emoji: "⚡", name: "Lightning Football", power: "Throws zoom like lightning!",
+        missions: { little: { desc: "Get 8 answers right", stat: "rightTotal", need: 8 }, big: { desc: "Get 20 first-try answers", stat: "firstTry", need: 20 } } },
+      { id: "rocket-arm", emoji: "🚀", name: "Rocket Arm", power: "Unstoppable rocket throws!",
+        missions: { little: { desc: "Score 3 touchdowns", stat: "goals", need: 3 }, big: { desc: "Win 2 games", stat: "wins", need: 2 } } },
+      { id: "mega-helmet", emoji: "🪖", name: "Mega Helmet", power: "Nothing stops you!",
+        missions: { little: { desc: "Earn 15 stars", stat: "stars", need: 15 }, big: { desc: "Earn 40 stars", stat: "stars", need: 40 } } },
+      { id: "victory-dance", emoji: "🕺", name: "Victory Dance", power: "The coolest end-zone dance!",
+        missions: { little: { desc: "Finish 1 writing drill", stat: "writeDrills", need: 1 }, big: { desc: "Finish 3 writing drills", stat: "writeDrills", need: 3 } } },
+    ],
     stickers: ["🏈", "🏟️", "🏆", "🥇", "🧢", "💪", "📣", "🎉", "🌟", "🔥", "🦅", "⚡"],
     shopItems: [
       { id: "helmet", label: "Gold Helmet", emoji: "🪖", cost: 30 },
@@ -142,6 +201,23 @@ const THEMES = {
       { id: "luka", label: "Luka", sub: "Star #77", number: "77", colors: { body: "#00538c", sleeve: "#b8c4ca", text: "#ffffff" }, cost: 80 },
       { id: "kd", label: "KD", sub: "Star #35", number: "35", colors: { body: "#e56020", sleeve: "#1d1160", text: "#ffffff" }, cost: 80 },
     ],
+    skills: {
+      math: { name: "Shooting", emoji: "🏀" },
+      reading: { name: "Court Vision", emoji: "👀" },
+      writing: { name: "Handles", emoji: "✋" },
+    },
+    gear: [
+      { id: "golden-sneakers", emoji: "👟", name: "Golden Sneakers", power: "Jump higher than ever!",
+        missions: { little: { desc: "Finish 2 drills", stat: "drills", need: 2 }, big: { desc: "Finish 5 drills", stat: "drills", need: 5 } } },
+      { id: "lightning-ball", emoji: "⚡", name: "Lightning Ball", power: "Shots zoom like lightning!",
+        missions: { little: { desc: "Get 8 answers right", stat: "rightTotal", need: 8 }, big: { desc: "Get 20 first-try answers", stat: "firstTry", need: 20 } } },
+      { id: "rocket-jump", emoji: "🚀", name: "Rocket Jump", power: "Slam dunk from anywhere!",
+        missions: { little: { desc: "Score 3 baskets in games", stat: "goals", need: 3 }, big: { desc: "Win 2 games", stat: "wins", need: 2 } } },
+      { id: "magic-net", emoji: "🥅", name: "Magic Net", power: "Everything swishes!",
+        missions: { little: { desc: "Earn 15 stars", stat: "stars", need: 15 }, big: { desc: "Earn 40 stars", stat: "stars", need: 40 } } },
+      { id: "glow-headband", emoji: "🌈", name: "Glow Headband", power: "All-star rainbow style!",
+        missions: { little: { desc: "Finish 1 writing drill", stat: "writeDrills", need: 1 }, big: { desc: "Finish 3 writing drills", stat: "writeDrills", need: 3 } } },
+    ],
     stickers: ["🏀", "🗑️", "🏆", "🥇", "👟", "💪", "📣", "🎉", "🌟", "🔥", "🦖", "⚡"],
     shopItems: [
       { id: "kicks", label: "Super Kicks", emoji: "👟", cost: 30 },
@@ -189,6 +265,23 @@ const THEMES = {
       { id: "rose", label: "Pink Pearl", sub: "Shiny coat", symbol: "⚓", colors: { body: "#e91e63", sleeve: "#ffd54f", text: "#fff8e1" } },
       { id: "gold", label: "Golden Captain", sub: "Legend coat", symbol: "👑", colors: { body: "#d4af37", sleeve: "#8e5b0a", text: "#5d4037" }, cost: 80 },
     ],
+    skills: {
+      math: { name: "Treasure Counting", emoji: "🪙" },
+      reading: { name: "Map Reading", emoji: "🗺️" },
+      writing: { name: "Log Writing", emoji: "📜" },
+    },
+    gear: [
+      { id: "golden-boots", emoji: "🥾", name: "Golden Sea Boots", power: "Run the deck at super speed!",
+        missions: { little: { desc: "Finish 2 trainings", stat: "drills", need: 2 }, big: { desc: "Finish 5 trainings", stat: "drills", need: 5 } } },
+      { id: "lightning-compass", emoji: "🧭", name: "Lightning Compass", power: "Find treasure in a flash!",
+        missions: { little: { desc: "Get 8 answers right", stat: "rightTotal", need: 8 }, big: { desc: "Get 20 first-try answers", stat: "firstTry", need: 20 } } },
+      { id: "rocket-sails", emoji: "🚀", name: "Rocket Sails", power: "Fastest ship on the sea!",
+        missions: { little: { desc: "Find 3 treasures in hunts", stat: "goals", need: 3 }, big: { desc: "Win 2 treasure hunts", stat: "wins", need: 2 } } },
+      { id: "captains-crown", emoji: "👑", name: "Captain's Crown", power: "Ruler of the seven seas!",
+        missions: { little: { desc: "Earn 15 stars", stat: "stars", need: 15 }, big: { desc: "Earn 40 stars", stat: "stars", need: 40 } } },
+      { id: "rainbow-sails", emoji: "🌈", name: "Rainbow Sails", power: "The most dazzling ship afloat!",
+        missions: { little: { desc: "Finish 1 log writing", stat: "writeDrills", need: 1 }, big: { desc: "Finish 3 log writings", stat: "writeDrills", need: 3 } } },
+    ],
     stickers: ["🏴‍☠️", "⚓", "💎", "🪙", "🦜", "🗺️", "⛵", "🎉", "🌟", "🐙", "🧭", "🌊"],
     shopItems: [
       { id: "parrot", label: "Pet Parrot", emoji: "🦜", cost: 30 },
@@ -235,6 +328,23 @@ const THEMES = {
       { id: "flame", label: "Flame Trainer", sub: "Team 🔥", symbol: "★", colors: { body: "#e74c3c", sleeve: "#f39c12", text: "#ffffff" } },
       { id: "shadow", label: "Moon Trainer", sub: "Team 🌙", symbol: "★", colors: { body: "#8e44ad", sleeve: "#2c3e50", text: "#f5eef8" } },
       { id: "rainbow", label: "Rainbow Master", sub: "Legend", symbol: "✦", colors: { body: "#ff6bcb", sleeve: "#4facfe", text: "#ffffff" }, cost: 80 },
+    ],
+    skills: {
+      math: { name: "Battle Power", emoji: "💥" },
+      reading: { name: "Spell Reading", emoji: "📖" },
+      writing: { name: "Rune Magic", emoji: "🔮" },
+    },
+    gear: [
+      { id: "golden-boots", emoji: "🥾", name: "Golden Trail Boots", power: "Trek anywhere at super speed!",
+        missions: { little: { desc: "Finish 2 trainings", stat: "drills", need: 2 }, big: { desc: "Finish 5 trainings", stat: "drills", need: 5 } } },
+      { id: "lightning-charm", emoji: "⚡", name: "Lightning Charm", power: "Charge up mega energy!",
+        missions: { little: { desc: "Get 8 answers right", stat: "rightTotal", need: 8 }, big: { desc: "Get 20 first-try answers", stat: "firstTry", need: 20 } } },
+      { id: "sky-wings", emoji: "🪽", name: "Sky Wings", power: "Soar above the clouds!",
+        missions: { little: { desc: "Catch 3 monsters in hunts", stat: "goals", need: 3 }, big: { desc: "Win 2 monster hunts", stat: "wins", need: 2 } } },
+      { id: "star-shield", emoji: "🛡️", name: "Star Shield", power: "Block any shadow attack!",
+        missions: { little: { desc: "Earn 15 stars", stat: "stars", need: 15 }, big: { desc: "Earn 40 stars", stat: "stars", need: 40 } } },
+      { id: "rainbow-aura", emoji: "🌈", name: "Rainbow Aura", power: "Glow with legendary power!",
+        missions: { little: { desc: "Finish 1 rune writing", stat: "writeDrills", need: 1 }, big: { desc: "Finish 3 rune writings", stat: "writeDrills", need: 3 } } },
     ],
     stickers: ["🐉", "🦊", "🐢", "🐸", "🦄", "👾", "🌟", "🎉", "🔮", "⚡", "🫐", "🌈"],
     shopItems: [
