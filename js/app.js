@@ -157,17 +157,40 @@ function pushHistory(entry) {
 }
 
 /* --------------------------- avatar --------------------------- */
+let __svgUid = 0;
 function jerseySVG(outfit, size = 90) {
   const c = outfit.colors;
   const label = outfit.number || outfit.symbol || "★";
+  const uid = ++__svgUid; // unique gradient/clip ids per render
+  const torso = "M38 18 Q60 30 82 18 L86 90 Q60 99 34 90 Z";
+  let stripes = "";
+  if (c.stripes) {
+    const n = 6, w = (88 - 32) / n;
+    for (let i = 0; i < n; i++) {
+      stripes += `<rect x="${32 + i * w}" y="14" width="${w + 0.6}" height="88" fill="${c.stripes[i % c.stripes.length]}"/>`;
+    }
+  }
   return `
-  <svg width="${size}" height="${size * 0.82}" viewBox="0 0 100 82" aria-hidden="true">
-    <path d="M30 6 L14 14 L4 34 L18 42 L20 32 L20 78 L80 78 L80 32 L82 42 L96 34 L86 14 L70 6 Q60 16 50 16 Q40 16 30 6 Z"
-      fill="${c.body}" stroke="#22304a" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M30 6 L14 14 L4 34 L18 42 L20 32 L22 20 Z" fill="${c.sleeve}" stroke="#22304a" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M70 6 L86 14 L96 34 L82 42 L80 32 L78 20 Z" fill="${c.sleeve}" stroke="#22304a" stroke-width="3" stroke-linejoin="round"/>
-    <text x="50" y="56" text-anchor="middle" font-size="${label.length > 1 ? 26 : 30}" font-weight="900"
-      font-family="Arial, sans-serif" fill="${c.text}">${label}</text>
+  <svg width="${size}" height="${Math.round(size * 0.84)}" viewBox="0 0 120 101" aria-hidden="true">
+    <defs>
+      <clipPath id="torso${uid}"><path d="${torso}"/></clipPath>
+      <linearGradient id="shine${uid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/>
+        <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.05"/>
+        <stop offset="1" stop-color="#000000" stop-opacity="0.2"/>
+      </linearGradient>
+    </defs>
+    <path d="M38 18 L15 29 L23 49 L37 42 Z" fill="${c.sleeve}" stroke="#10131f" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M82 18 L105 29 L97 49 L83 42 Z" fill="${c.sleeve}" stroke="#10131f" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M17 44 L23 49 L27 39" fill="none" stroke="#10131f" stroke-width="2" opacity="0.35"/>
+    <path d="M103 44 L97 49 L93 39" fill="none" stroke="#10131f" stroke-width="2" opacity="0.35"/>
+    <path d="${torso}" fill="${c.body}"/>
+    ${stripes ? `<g clip-path="url(#torso${uid})">${stripes}</g>` : ""}
+    <path d="${torso}" fill="url(#shine${uid})" stroke="#10131f" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M48 17 Q60 30 72 17" fill="none" stroke="#10131f" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M48 17 Q60 30 72 17" fill="none" stroke="${c.sleeve}" stroke-width="2" stroke-linecap="round"/>
+    <text x="60" y="70" text-anchor="middle" font-size="${label.length > 1 ? 32 : 36}" font-weight="900"
+      font-family="'Arial Black', Arial, sans-serif" fill="${c.text}" stroke="#10131f" stroke-width="1.4" paint-order="stroke">${label}</text>
   </svg>`;
 }
 
@@ -310,7 +333,7 @@ function showHome() {
   $screen.innerHTML = `
     <div class="logo-hero">
       <div class="balls">⚽ 🏈 🏀 🏴‍☠️ 🐉</div>
-      <h1>Brain Camp</h1>
+      <h1 class="hero-title">Brain Camp</h1>
       <div class="subtitle">Math • Reading • Writing — your adventure!</div>
     </div>
     <div class="player-list">
@@ -566,7 +589,7 @@ function showHub() {
       <div class="chip stars">⭐ ${P.stars}</div>
     </div>
     <div class="card center">
-      ${avatarHTML(P, 140, true)}
+      <div class="burst-wrap"><div class="burst"></div>${avatarHTML(P, 140, true)}</div>
       <h2 style="margin:6px 0 0">${esc(P.name)}</h2>
       <div class="subtitle">${t.emoji} ${t.name} • Level ${levelOf(P)}</div>
       <button class="chip" id="path-chip" style="border:none;cursor:pointer;font-family:inherit;margin-top:8px">${pa.emoji} ${esc(pa.name)}</button>
@@ -1103,7 +1126,7 @@ function finishMatch(won) {
     <div class="card center" style="margin-top:24px">
       <div class="reward-banner">${won ? "🏆" : "💪"}</div>
       <h2>${won ? esc(t.terms.match.winWord) : "So close! What a game!"}</h2>
-      ${avatarHTML(P, 120, true)}
+      <div class="burst-wrap">${won ? '<div class="burst"></div>' : ""}${avatarHTML(P, 120, true)}</div>
       <div class="reward-line">Final Score: ${match.playerScore} – ${match.rivalScore}</div>
       <div class="reward-line">🪙 +${coins} coins &nbsp; ⭐ +${stars} stars</div>
       ${sticker ? `<div class="reward-line">New sticker! <span class="sticker-reveal">${sticker}</span></div>` : ""}

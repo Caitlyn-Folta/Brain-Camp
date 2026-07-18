@@ -27,10 +27,10 @@ after loading. Works great on a tablet or phone (touch-friendly, big buttons).
 - **Pick your adventure:** Soccer Star ⚽, Football Hero 🏈, Hoops Hero 🏀,
   Pirate Adventure 🏴‍☠️, or Monster Quest 🐉.
 - **Pick your jersey:** soccer jerseys are inspired by today's most famous
-  players (Messi, Ronaldo, Mbappé, Haaland, Vini Jr., Bellingham, Alexia
-  Putellas, Sam Kerr) with legend jerseys (Zlatan, Bale) to unlock. Football
-  and basketball have their own star jerseys; pirates get captain coats and
-  monster trainers get team outfits.
+  players — Lamine Yamal, Kylian Mbappé, Jude Bellingham, Harry Kane,
+  Lionel Messi, and Neymar — with legend jerseys (Ronaldo, Zlatan) to
+  unlock in the shop. Football and basketball have their own star jerseys;
+  pirates get captain coats and monster trainers get team outfits.
 - **Add a photo** (kept only on your device, never uploaded anywhere) or pick
   a fun emoji face. Your kid's face sits right on top of their jersey.
 
