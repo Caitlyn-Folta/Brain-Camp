@@ -34,7 +34,7 @@ const THEMES = {
     name: "Soccer Star",
     emoji: "⚽",
     tagline: "You are the player on the team!",
-    bg: ["#2fe58b", "#2e7bff"],
+    bg: ["#2fae5c", "#38b6ff"],
     outfitWord: "jersey",
     terms: {
       hub: "My Stadium",
@@ -100,7 +100,7 @@ const THEMES = {
     name: "Football Hero",
     emoji: "🏈",
     tagline: "Lead your team down the field!",
-    bg: ["#37d67a", "#ffb020"],
+    bg: ["#27964f", "#ffb64a"],
     outfitWord: "jersey",
     terms: {
       hub: "My Field",
@@ -166,7 +166,7 @@ const THEMES = {
     name: "Hoops Hero",
     emoji: "🏀",
     tagline: "Light up the scoreboard!",
-    bg: ["#ff8a1e", "#ff2e63"],
+    bg: ["#d97a35", "#63b8ff"],
     outfitWord: "jersey",
     terms: {
       hub: "My Court",
@@ -232,7 +232,7 @@ const THEMES = {
     name: "Pirate Adventure",
     emoji: "🏴‍☠️",
     tagline: "Sail the seas and find treasure!",
-    bg: ["#1ec9ff", "#7a5cff"],
+    bg: ["#1793c9", "#8ed8f5"],
     outfitWord: "captain coat",
     terms: {
       hub: "My Ship",
@@ -296,7 +296,7 @@ const THEMES = {
     name: "Monster Quest",
     emoji: "🐉",
     tagline: "Catch friendly monsters as you learn!",
-    bg: ["#ff4ecd", "#8a2be2"],
+    bg: ["#9b59d0", "#ffa8df"],
     outfitWord: "trainer outfit",
     terms: {
       hub: "My Camp",

@@ -1,5 +1,9 @@
 # Brain Camp ⚽🏈🏀🏴‍☠️🐉
 
+> Art direction: bright anime-sports-comic style — cel-shaded full-body
+> players with bold outlines, sunny stadium skies over the pitch, diamond
+> panels, speed lines, and hard comic shadows.
+
 A colorful learning game for kids (ages ~4–8) that practices **math, reading,
 and writing** — wrapped in an adventure your kid picks. The big idea:
 **"You are the player on the team."** Your kid adds their photo, picks a

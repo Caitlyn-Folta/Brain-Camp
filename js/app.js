@@ -228,30 +228,95 @@ function jerseySVG(outfit, size = 90) {
         <stop offset="1" stop-color="#000000" stop-opacity="0.2"/>
       </linearGradient>
     </defs>
-    <path d="M38 18 L15 29 L23 49 L37 42 Z" fill="${c.sleeve}" stroke="#10131f" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M82 18 L105 29 L97 49 L83 42 Z" fill="${c.sleeve}" stroke="#10131f" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M17 44 L23 49 L27 39" fill="none" stroke="#10131f" stroke-width="2" opacity="0.35"/>
-    <path d="M103 44 L97 49 L93 39" fill="none" stroke="#10131f" stroke-width="2" opacity="0.35"/>
+    <path d="M38 18 L15 29 L23 49 L37 42 Z" fill="${c.sleeve}" stroke="#1b2450" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M82 18 L105 29 L97 49 L83 42 Z" fill="${c.sleeve}" stroke="#1b2450" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M17 44 L23 49 L27 39" fill="none" stroke="#1b2450" stroke-width="2" opacity="0.35"/>
+    <path d="M103 44 L97 49 L93 39" fill="none" stroke="#1b2450" stroke-width="2" opacity="0.35"/>
     <path d="${torso}" fill="${c.body}"/>
     ${stripes ? `<g clip-path="url(#torso${uid})">${stripes}</g>` : ""}
-    <path d="${torso}" fill="url(#shine${uid})" stroke="#10131f" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M48 17 Q60 30 72 17" fill="none" stroke="#10131f" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="${torso}" fill="url(#shine${uid})" stroke="#1b2450" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M48 17 Q60 30 72 17" fill="none" stroke="#1b2450" stroke-width="4.5" stroke-linecap="round"/>
     <path d="M48 17 Q60 30 72 17" fill="none" stroke="${c.sleeve}" stroke-width="2" stroke-linecap="round"/>
     <text x="60" y="70" text-anchor="middle" font-size="${label.length > 1 ? 32 : 36}" font-weight="900"
-      font-family="'Arial Black', Arial, sans-serif" fill="${c.text}" stroke="#10131f" stroke-width="1.4" paint-order="stroke">${label}</text>
+      font-family="'Arial Black', Arial, sans-serif" fill="${c.text}" stroke="#1b2450" stroke-width="1.4" paint-order="stroke">${label}</text>
+  </svg>`;
+}
+
+// Full-body cel-shaded player: jersey, shorts, socks, cleats, raised
+// fist, ball at the feet — anime-sports style with bold outlines.
+function playerBodySVG(outfit, size, ballEmoji) {
+  const c = outfit.colors;
+  const label = outfit.number || outfit.symbol || "★";
+  const uid = ++__svgUid;
+  const OUT = "#1b2450";
+  const skin = "#f6c9a0";
+  const shorts = c.sleeve;
+  const sock = c.stripes ? c.stripes[1] : c.body;
+  const torso = "M46 24 Q75 36 104 24 L107 92 Q75 100 43 92 Z";
+  let stripes = "";
+  if (c.stripes) {
+    const n = 6, w = (108 - 42) / n;
+    for (let i = 0; i < n; i++) {
+      stripes += `<rect x="${42 + i * w}" y="20" width="${w + 0.6}" height="82" fill="${c.stripes[i % c.stripes.length]}"/>`;
+    }
+  }
+  return `
+  <svg width="${size}" height="${Math.round(size * 1.28)}" viewBox="0 0 150 192" aria-hidden="true">
+    <defs>
+      <clipPath id="torso${uid}"><path d="${torso}"/></clipPath>
+      <linearGradient id="shine${uid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff" stop-opacity="0.32"/>
+        <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.04"/>
+        <stop offset="1" stop-color="#000000" stop-opacity="0.16"/>
+      </linearGradient>
+    </defs>
+    <ellipse cx="78" cy="183" rx="52" ry="8" fill="rgba(20,30,60,0.2)"/>
+    <!-- left arm (down) -->
+    <path d="M30 44 L17 72" stroke="${OUT}" stroke-width="16" stroke-linecap="round" fill="none"/>
+    <path d="M30 44 L17 72" stroke="${skin}" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <circle cx="16" cy="76" r="7.5" fill="${skin}" stroke="${OUT}" stroke-width="3"/>
+    <!-- right arm (fist raised) -->
+    <path d="M121 42 L134 19" stroke="${OUT}" stroke-width="16" stroke-linecap="round" fill="none"/>
+    <path d="M121 42 L134 19" stroke="${skin}" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <circle cx="135" cy="14" r="7.5" fill="${skin}" stroke="${OUT}" stroke-width="3"/>
+    <!-- legs / socks -->
+    <path d="M57 120 L53 158" stroke="${OUT}" stroke-width="20" stroke-linecap="round" fill="none"/>
+    <path d="M57 120 L53 158" stroke="${sock}" stroke-width="13" stroke-linecap="round" fill="none"/>
+    <path d="M93 120 L99 148" stroke="${OUT}" stroke-width="20" stroke-linecap="round" fill="none"/>
+    <path d="M93 120 L99 148" stroke="${sock}" stroke-width="13" stroke-linecap="round" fill="none"/>
+    <!-- cleats -->
+    <rect x="34" y="153" width="32" height="14" rx="7" fill="#232c52" stroke="${OUT}" stroke-width="3"/>
+    <rect x="86" y="141" width="30" height="13" rx="6.5" fill="#232c52" stroke="${OUT}" stroke-width="3" transform="rotate(-14 101 147)"/>
+    <path d="M40 158 L58 158" stroke="#ffd24a" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M92 148 L106 144" stroke="#ffd24a" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- shorts -->
+    <path d="M44 88 L106 88 L112 124 L83 124 L75 108 L67 124 L38 124 Z" fill="${shorts}" stroke="${OUT}" stroke-width="3.5" stroke-linejoin="round"/>
+    <!-- sleeves -->
+    <path d="M46 24 L24 35 L31 55 L47 47 Z" fill="${c.sleeve}" stroke="${OUT}" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="M104 24 L126 35 L119 55 L103 47 Z" fill="${c.sleeve}" stroke="${OUT}" stroke-width="3.5" stroke-linejoin="round"/>
+    <!-- torso -->
+    <path d="${torso}" fill="${c.body}"/>
+    ${stripes ? `<g clip-path="url(#torso${uid})">${stripes}</g>` : ""}
+    <path d="${torso}" fill="url(#shine${uid})" stroke="${OUT}" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="M60 23 Q75 35 90 23" fill="none" stroke="${OUT}" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M60 23 Q75 35 90 23" fill="none" stroke="${c.sleeve}" stroke-width="2" stroke-linecap="round"/>
+    <text x="75" y="74" text-anchor="middle" font-size="${label.length > 1 ? 28 : 32}" font-weight="900"
+      font-family="'Arial Black', Arial, sans-serif" fill="${c.text}" stroke="${OUT}" stroke-width="1.3" paint-order="stroke">${label}</text>
+    <text x="116" y="177" font-size="30" text-anchor="middle">${ballEmoji || "⚽"}</text>
   </svg>`;
 }
 
 function avatarHTML(p, size = 100, bounce = false) {
   const outfit = outfitOf(p);
-  const headSize = Math.round(size * 0.52);
+  const theme = themeOf(p);
+  const headSize = Math.round(size * 0.46);
   const head = p.photo
     ? `<img src="${p.photo}" alt="">`
     : `<span class="face" style="font-size:${Math.round(headSize * 0.72)}px">${p.face || "😀"}</span>`;
   return `
     <span class="avatar ${bounce ? "bounce" : ""}">
       <span class="head" style="width:${headSize}px;height:${headSize}px">${head}</span>
-      ${jerseySVG(outfit, size)}
+      ${playerBodySVG(outfit, size, theme.terms.match.scoreEmoji)}
     </span>`;
 }
 
