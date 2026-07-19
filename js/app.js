@@ -51,21 +51,69 @@ const sfx = {
   whistle: () => { tone(2200, 0, 0.15, "square", 0.06); tone(2200, 0.2, 0.3, "square", 0.06); },
 };
 
+/* ---- speech: pick the most natural voice the device offers ---- */
+const VOICE_KEY = "braincamp.voiceURI"; // per device, shared by all players
+let VOICES = [];
+
+// Higher score = more natural. Neural/enhanced voices (Edge, iOS premium,
+// Android "Natural", Chrome's Google voices) rank far above the old
+// robotic system voices.
+function voiceScore(v) {
+  if (!/^en/i.test(v.lang)) return -1;
+  const n = (v.name + " " + v.voiceURI).toLowerCase();
+  let s = 0;
+  if (/natural|neural/.test(n)) s += 80;
+  if (/premium|enhanced|superior/.test(n)) s += 60;
+  if (/google/.test(n)) s += 50;
+  if (/online/.test(n)) s += 15;
+  if (/samantha|ava|allison|zoe|joelle|aria|jenny|michelle|sonia|libby|karen|moira|tessa/.test(n)) s += 25;
+  if (/zira|david|mark|fred|albert|junior|kathy|ralph|zarvox|trinoids|whisper|bells|organ|cellos|bad news|good news|bahh|boing|bubbles|deranged|hysterical|compact|espeak|eloquence|grandma|grandpa|flo|sandy|shelley|reed|rocko/.test(n)) s -= 70;
+  if (/en[-_](us|gb|au|ca)/i.test(v.lang)) s += 10;
+  if (v.default) s += 2;
+  return s;
+}
+
+function refreshVoices() {
+  try { VOICES = speechSynthesis.getVoices() || []; } catch (e) { VOICES = []; }
+}
+if ("speechSynthesis" in window) {
+  refreshVoices();
+  speechSynthesis.addEventListener?.("voiceschanged", refreshVoices);
+}
+
+function rankedVoices() {
+  return VOICES.map((v) => ({ v, s: voiceScore(v) }))
+    .filter((x) => x.s >= 0)
+    .sort((a, b) => b.s - a.s)
+    .map((x) => x.v);
+}
+
+function currentVoice() {
+  if (!VOICES.length) refreshVoices();
+  const savedURI = localStorage.getItem(VOICE_KEY);
+  if (savedURI) {
+    const saved = VOICES.find((v) => v.voiceURI === savedURI);
+    if (saved) return saved;
+  }
+  return rankedVoices()[0] || null;
+}
+
 function speak(text) {
   try {
     if (!("speechSynthesis" in window) || !text) return;
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.92;
-    u.pitch = 1.1;
-    const voices = speechSynthesis.getVoices();
-    const v = voices.find((v) => /en[-_]/i.test(v.lang) && /female|kid|samantha|zira|google us/i.test(v.name))
-      || voices.find((v) => /en[-_]/i.test(v.lang));
+    const v = currentVoice();
     if (v) u.voice = v;
+    // Natural voices sound best near their native rate/pitch; only the
+    // older robotic voices benefit from a gentler pace.
+    const n = v ? (v.name + " " + v.voiceURI).toLowerCase() : "";
+    const natural = /natural|neural|premium|enhanced|google|online/.test(n);
+    u.rate = natural ? 1.0 : 0.95;
+    u.pitch = natural ? 1.0 : 1.05;
     speechSynthesis.speak(u);
   } catch (e) { /* speech is a bonus, never break the game */ }
 }
-if ("speechSynthesis" in window) speechSynthesis.getVoices(); // warm up voice list
 
 /* ------------------------- persistence ------------------------- */
 const STORE_KEY = "braincamp.players.v1";
@@ -354,12 +402,11 @@ function showHome() {
     </div>
     <div class="btn-col">
       <button class="btn green big" id="new-player">➕ New Player</button>
-      ${players.length ? `<button class="btn ghost small" id="manage">Grown-ups: manage players</button>` : ""}
+      <button class="btn ghost small" id="manage">Grown-ups: voice &amp; players</button>
     </div>
   `;
   document.getElementById("new-player").onclick = () => { sfx.click(); startCreate(); };
-  const manage = document.getElementById("manage");
-  if (manage) manage.onclick = () => { sfx.click(); showManage(); };
+  document.getElementById("manage").onclick = () => { sfx.click(); showManage(); };
   $screen.querySelectorAll(".player-card").forEach((el) => {
     el.onclick = () => {
       sfx.click();
@@ -371,20 +418,48 @@ function showHome() {
 }
 
 function showManage() {
+  refreshVoices();
   const players = loadPlayers();
+  const hasSpeech = "speechSynthesis" in window;
+  const voices = hasSpeech ? rankedVoices().slice(0, 8) : [];
+  const chosen = hasSpeech ? currentVoice() : null;
+  const savedURI = localStorage.getItem(VOICE_KEY);
   $screen.innerHTML = `
     <div class="topbar">
       <button class="btn ghost icon" id="back">⬅️</button>
-      <h2>Manage Players</h2>
+      <h2>Grown-Ups</h2>
     </div>
-    ${players.map((p) => `
-      <div class="card" style="display:flex;align-items:center;gap:12px">
-        ${avatarHTML(p, 60)}
-        <div style="flex:1;font-weight:800">${esc(p.name)}</div>
-        <button class="btn red small" style="background:var(--red)" data-del="${p.id}">Delete</button>
-      </div>`).join("") || `<div class="card center">No players yet.</div>`}
+    <div class="card">
+      <h3>🔊 Reading Voice</h3>
+      <p class="subtitle" style="font-size:.9rem">Questions are read out loud. Tap a voice to hear it — the best ones on this device are listed first. On iPad/iPhone you can download extra natural voices in Settings → Accessibility → Spoken Content → Voices.</p>
+      ${voices.length ? voices.map((v) => `
+        <button class="pick-tile ${chosen && v.voiceURI === chosen.voiceURI ? "selected" : ""}" style="width:100%;text-align:left;display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:10px 14px" data-voice="${esc(v.voiceURI)}">
+          <span style="font-size:1.4rem">${chosen && v.voiceURI === chosen.voiceURI ? "✅" : "🗣️"}</span>
+          <span style="flex:1">
+            <span class="label" style="margin:0">${esc(v.name)}</span>
+            <span class="sub">${esc(v.lang)}${v === voices[0] && !savedURI ? " • recommended" : ""}</span>
+          </span>
+        </button>`).join("")
+      : `<p>This browser has no reading voices — the game still works, just without sound.</p>`}
+    </div>
+    <div class="card">
+      <h3>👧 Players</h3>
+      ${players.map((p) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0">
+          ${avatarHTML(p, 60)}
+          <div style="flex:1;font-weight:800">${esc(p.name)}</div>
+          <button class="btn small" style="background:linear-gradient(135deg,#ff5d7a,#e0295c)" data-del="${p.id}">Delete</button>
+        </div>`).join("") || `<p class="subtitle">No players yet.</p>`}
+    </div>
   `;
   document.getElementById("back").onclick = showHome;
+  $screen.querySelectorAll("[data-voice]").forEach((b) => {
+    b.onclick = () => {
+      localStorage.setItem(VOICE_KEY, b.dataset.voice);
+      speak("Hi! Let's play Brain Camp! Ready? 3, 2, 1, go!");
+      showManage();
+    };
+  });
   $screen.querySelectorAll("[data-del]").forEach((b) => {
     b.onclick = () => {
       if (confirm("Delete this player and all their progress?")) {

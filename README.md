@@ -11,8 +11,13 @@ journey.
 Just open `index.html` in any modern browser — no install, no internet needed
 after loading. Works great on a tablet or phone (touch-friendly, big buttons).
 
-> Tip: for the read-aloud voice, use Chrome/Edge/Safari. Every question is
-> spoken out loud, so pre-readers (age 4–5) can play too.
+> Tip: every question is read out loud, so pre-readers (age 4–5) can play
+> too. The game automatically picks the most natural voice your device
+> offers, and grown-ups can change it (with tap-to-hear samples) under
+> **Grown-ups: voice & players** on the home screen. Microsoft Edge has the
+> most natural free voices; on iPad/iPhone you can download extra natural
+> voices in Settings → Accessibility → Spoken Content → Voices, and they'll
+> appear in the picker.
 
 ## What's inside
 
