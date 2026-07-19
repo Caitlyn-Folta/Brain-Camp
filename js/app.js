@@ -155,7 +155,8 @@ function newProfile() {
     unlockedItems: [],
     skills: { math: 0, reading: 0, writing: 0 }, // XP per skill
     history: [],   // {d, kind:"drill"|"match", subject?, right?, total?, won?}
-    stats: { drills: 0, wins: 0, mathRight: 0, readRight: 0, writeDrills: 0, firstTry: 0, rightTotal: 0, goals: 0 },
+    stats: { drills: 0, wins: 0, mathRight: 0, readRight: 0, writeDrills: 0, firstTry: 0, rightTotal: 0, goals: 0,
+      kickTokens: 0, kickCredited: 0, kicksTaken: 0, kicksScored: 0 },
   };
 }
 
@@ -166,7 +167,8 @@ function normalizeProfile(p) {
   if (!p.history) p.history = [];
   if (!p.gear) p.gear = [];
   const s = p.stats || (p.stats = {});
-  for (const k of ["drills", "wins", "mathRight", "readRight", "writeDrills", "firstTry", "rightTotal", "goals"]) {
+  for (const k of ["drills", "wins", "mathRight", "readRight", "writeDrills", "firstTry", "rightTotal", "goals",
+    "kickTokens", "kickCredited", "kicksTaken", "kicksScored"]) {
     if (typeof s[k] !== "number") s[k] = 0;
   }
   return p;
@@ -409,6 +411,7 @@ function checkTrophies() {
     "super-saver": P.coins >= 100,
     "star-collector": P.stars >= 50,
     "sticker-fan": P.stickers.length >= 8,
+    "golden-striker": s.kicksScored >= 5,
   };
   for (const t of TROPHIES) {
     if (rules[t.id] && !P.trophies.includes(t.id)) {
@@ -441,9 +444,27 @@ function checkGear() {
   return earned;
 }
 
-// Collect all new awards (trophies + gear) in one popup queue.
+// Bonus shots (penalty kicks etc.): every KICK_NEED right answers = 1.
+function checkKickTokens() {
+  const need = KICK_NEED[tierOf(P)];
+  const b = themeOf(P).terms.bonus;
+  const earned = [];
+  while (P.stats.rightTotal - P.stats.kickCredited >= need) {
+    P.stats.kickCredited += need;
+    P.stats.kickTokens++;
+    earned.push({
+      emoji: "🎯", title: "Bonus Unlocked!", name: `${b.name} earned!`,
+      desc: `${need} right answers! Play it from your home screen!`,
+      say: `Amazing! You earned a ${b.name}! Play it from your home screen!`,
+    });
+  }
+  return earned;
+}
+
+// Collect all new awards (bonus shots + trophies + gear) in one queue.
 function checkAwards() {
   return [
+    ...checkKickTokens(),
     ...checkTrophies().map((t) => ({ emoji: t.emoji, name: t.name, desc: t.desc, title: "New Trophy!", say: `New trophy! ${t.name}!` })),
     ...checkGear(),
   ];
@@ -773,6 +794,11 @@ function showHub() {
     <div class="btn-col">
       <button class="btn green big" id="go-train">💪 ${esc(t.terms.train)}</button>
       <button class="btn blue big" id="go-match">${t.terms.match.scoreEmoji} Play: ${esc(t.terms.match.name)}</button>
+      <button class="btn big ${P.stats.kickTokens > 0 ? "" : "locked-bonus"}" id="go-penalty">🎯 ${esc(t.terms.bonus.name)}${
+        P.stats.kickTokens > 0
+          ? ` <span class="bonus-count">×${P.stats.kickTokens}</span>`
+          : ` <span class="bonus-count">${P.stats.rightTotal - P.stats.kickCredited}/${KICK_NEED[tierOf(P)]}</span>`
+      }</button>
       <button class="btn purple big" id="go-progress">📈 My Progress</button>
       <button class="btn purple big" style="background:#8e44ad" id="go-locker">🏆 My Prizes &amp; ${esc(t.terms.hub)}</button>
       <button class="btn gold big" id="go-shop">🛍️ ${esc(t.terms.shop)}</button>
@@ -781,6 +807,15 @@ function showHub() {
   document.getElementById("back").onclick = () => { sfx.click(); showHome(); };
   document.getElementById("go-train").onclick = () => { sfx.click(); showTrainMenu(); };
   document.getElementById("go-match").onclick = () => { sfx.click(); startMatch(); };
+  document.getElementById("go-penalty").onclick = () => {
+    if (P.stats.kickTokens > 0) { sfx.whistle(); startPenalty(); }
+    else {
+      const left = KICK_NEED[tierOf(P)] - (P.stats.rightTotal - P.stats.kickCredited);
+      sfx.click();
+      praisePop(`${left} more right answers! 🎯`, true);
+      speak(`Get ${left} more right answers to earn a ${t.terms.bonus.name}!`);
+    }
+  };
   document.getElementById("go-progress").onclick = () => { sfx.click(); showProgress(); };
   document.getElementById("go-locker").onclick = () => { sfx.click(); showLocker(); };
   document.getElementById("go-shop").onclick = () => { sfx.click(); showShop(); };
@@ -1321,6 +1356,250 @@ function finishMatch(won) {
   showTrophyPopups(awards);
 }
 
+/* ================= BONUS SHOT (penalty kick) ================= */
+
+let pk = null;
+
+function startPenalty() {
+  if (P.stats.kickTokens <= 0) return;
+  P.stats.kickTokens--;
+  saveCurrent();
+  pk = { kicks: 3, goals: 0, raf: 0 };
+  renderPenalty();
+}
+
+function renderPenalty() {
+  const t = themeOf(P);
+  const b = t.terms.bonus;
+  const tier = tierOf(P);
+  $screen.innerHTML = `
+    <div class="topbar">
+      <button class="btn ghost icon" id="quit">⬅️</button>
+      <div class="spacer"></div>
+      <div class="chip">🎯 ${esc(b.name)}</div>
+    </div>
+    <div class="card center" style="padding:12px">
+      <div style="font-weight:800;font-size:1.1rem" id="pk-status">${esc(b.action)}</div>
+      <div class="trace-wrap" style="margin:10px 0 4px"><canvas id="penalty-canvas"></canvas></div>
+      <div style="font-weight:800" id="pk-score">${t.terms.bonus.projectile.repeat(pk.kicks)} left &nbsp;•&nbsp; Goals: ${pk.goals}</div>
+    </div>
+  `;
+  speak(`${b.name} time! ${b.action}`);
+
+  const canvas = document.getElementById("penalty-canvas");
+  const W = 330, H = 400;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.style.width = W + "px";
+  canvas.style.height = H + "px";
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  const cx = canvas.getContext("2d");
+  cx.scale(dpr, dpr);
+
+  const GOAL_TOP = 58, GOAL_LINE = 128, GOAL_HALF = 108;
+  const keeper = {
+    x: W / 2, y: GOAL_TOP + 42, t: Math.random() * 6,
+    range: tier === "little" ? 62 : 88,
+    speed: tier === "little" ? 0.022 : 0.036,
+  };
+  const ball = { x: W / 2, y: H - 58, vx: 0, vy: 0 };
+  let phase = "aim"; // aim | flying | result | over
+  let drag = null;
+  let resultText = "";
+  let resultTimer = 0;
+
+  function canvasPos(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) };
+  }
+  canvas.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    if (phase !== "aim") return;
+    canvas.setPointerCapture(e.pointerId);
+    drag = { sx: canvasPos(e).x, sy: canvasPos(e).y, x: canvasPos(e).x, y: canvasPos(e).y };
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag || phase !== "aim") return;
+    e.preventDefault();
+    const p = canvasPos(e);
+    drag.x = p.x; drag.y = p.y;
+  });
+  canvas.addEventListener("pointerup", (e) => {
+    if (!drag || phase !== "aim") return;
+    e.preventDefault();
+    const dx = drag.x - drag.sx, dy = drag.y - drag.sy;
+    drag = null;
+    if (dy < -28) { // real upward swipe
+      ball.vx = Math.max(-6.5, Math.min(6.5, dx * 0.055));
+      ball.vy = Math.max(-17, Math.min(-8, dy * 0.06));
+      phase = "flying";
+      sfx.click();
+      try { navigator.vibrate && navigator.vibrate(20); } catch (err) {}
+    }
+  });
+
+  function resolveShot() {
+    pk.kicks--;
+    if (Math.abs(ball.x - keeper.x) < 32) {
+      resultText = "SAVED!";
+      sfx.wrong();
+      speak(pick(["Ooh, saved! Try a corner!", "The robot got it! Aim for the corner!"]));
+    } else if (Math.abs(ball.x - W / 2) < GOAL_HALF) {
+      resultText = t.terms.match.scoreWord;
+      pk.goals++;
+      P.stats.kicksScored++;
+      sfx.fanfare();
+      burstConfetti([b.projectile, "🎉", "⭐"], 18);
+      try { navigator.vibrate && navigator.vibrate([40, 60, 40]); } catch (err) {}
+      speak(pick(["What a shot!", "Top corner!", "Unstoppable!"]));
+    } else {
+      resultText = "WIDE!";
+      sfx.wrong();
+      speak(pick(["Just wide! So close!", "Almost! Line it up!"]));
+    }
+    P.stats.kicksTaken++;
+    phase = "result";
+    resultTimer = 80;
+    const scoreEl = document.getElementById("pk-score");
+    if (scoreEl) scoreEl.textContent = `${b.projectile.repeat(Math.max(0, pk.kicks))} left  •  Goals: ${pk.goals}`;
+  }
+
+  function nextKick() {
+    if (pk.kicks <= 0) { phase = "over"; finishPenalty(); return; }
+    ball.x = W / 2; ball.y = H - 58; ball.vx = 0; ball.vy = 0;
+    phase = "aim";
+  }
+
+  function draw() {
+    // pitch
+    const sky = cx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, "#8d9bce");
+    sky.addColorStop(0.15, "#aab6e0");
+    sky.addColorStop(0.16, "#3fbf6d");
+    sky.addColorStop(1, "#27964f");
+    cx.fillStyle = sky;
+    cx.fillRect(0, 0, W, H);
+    // crowd dots
+    cx.fillStyle = "rgba(18,26,62,0.6)";
+    for (let row = 0; row < 4; row++) {
+      for (let i = 0; i < 26; i++) {
+        cx.beginPath();
+        cx.arc(6 + i * 13 + (row % 2) * 6, 8 + row * 12, 3.4, 0, 7);
+        cx.fill();
+      }
+    }
+    // mow stripes
+    cx.fillStyle = "rgba(255,255,255,0.08)";
+    for (let i = 0; i < 6; i++) cx.fillRect(0, 76 + i * 56, W, 28);
+    // penalty box
+    cx.strokeStyle = "rgba(255,255,255,0.75)";
+    cx.lineWidth = 3;
+    cx.strokeRect(W / 2 - 130, GOAL_LINE + 10, 260, 120);
+    // goal
+    cx.strokeStyle = "#ffffff";
+    cx.lineWidth = 6;
+    cx.strokeRect(W / 2 - GOAL_HALF, GOAL_TOP, GOAL_HALF * 2, GOAL_LINE - GOAL_TOP);
+    cx.lineWidth = 1.2;
+    cx.strokeStyle = "rgba(255,255,255,0.55)";
+    for (let x = -GOAL_HALF; x <= GOAL_HALF; x += 16) {
+      cx.beginPath(); cx.moveTo(W / 2 + x, GOAL_TOP); cx.lineTo(W / 2 + x, GOAL_LINE); cx.stroke();
+    }
+    for (let y = GOAL_TOP; y <= GOAL_LINE; y += 14) {
+      cx.beginPath(); cx.moveTo(W / 2 - GOAL_HALF, y); cx.lineTo(W / 2 + GOAL_HALF, y); cx.stroke();
+    }
+    // keeper
+    cx.font = "42px serif";
+    cx.textAlign = "center";
+    cx.fillText(t.terms.match.rivalEmoji, keeper.x, keeper.y);
+    // aim arrow
+    if (drag && phase === "aim") {
+      cx.strokeStyle = "rgba(27,36,80,0.65)";
+      cx.lineWidth = 5;
+      cx.setLineDash([10, 8]);
+      cx.beginPath();
+      cx.moveTo(ball.x, ball.y);
+      cx.lineTo(ball.x + (drag.x - drag.sx) * 1.6, ball.y + (drag.y - drag.sy) * 1.6);
+      cx.stroke();
+      cx.setLineDash([]);
+    }
+    // ball
+    cx.font = "34px serif";
+    cx.fillText(b.projectile, ball.x, ball.y + 10);
+    // hint
+    if (phase === "aim" && !drag) {
+      cx.font = "700 15px sans-serif";
+      cx.fillStyle = "#ffffff";
+      cx.fillText("👆 " + b.action, W / 2, H - 16);
+    }
+    // result banner
+    if (phase === "result") {
+      cx.font = "900 44px 'Bangers', 'Arial Black', sans-serif";
+      cx.fillStyle = resultText === t.terms.match.scoreWord ? "#ffd24a" : "#ffffff";
+      cx.strokeStyle = "#1b2450";
+      cx.lineWidth = 7;
+      cx.strokeText(resultText, W / 2, H / 2);
+      cx.fillText(resultText, W / 2, H / 2);
+    }
+  }
+
+  function loop() {
+    if (!document.getElementById("penalty-canvas")) return; // screen left
+    keeper.t += keeper.speed;
+    keeper.x = W / 2 + Math.sin(keeper.t) * keeper.range;
+    if (phase === "flying") {
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+      ball.vy *= 0.995;
+      if (ball.y <= GOAL_LINE - 4) resolveShot();
+      if (ball.x < 10 || ball.x > W - 10) { ball.vx *= -0.6; ball.x = Math.max(10, Math.min(W - 10, ball.x)); }
+    } else if (phase === "result") {
+      if (--resultTimer <= 0) nextKick();
+    }
+    draw();
+    if (phase !== "over") pk.raf = requestAnimationFrame(loop);
+  }
+  pk.raf = requestAnimationFrame(loop);
+
+  document.getElementById("quit").onclick = () => {
+    cancelAnimationFrame(pk.raf);
+    try { speechSynthesis.cancel(); } catch (err) {}
+    showHub();
+  };
+}
+
+function finishPenalty() {
+  cancelAnimationFrame(pk.raf);
+  const t = themeOf(P);
+  const coins = pk.goals * 5;
+  const stars = pk.goals * 2;
+  giveCoins(coins);
+  giveStars(stars);
+  pushHistory({ kind: "penalty", goals: pk.goals });
+  const awards = checkAwards();
+  saveCurrent();
+  const allThree = pk.goals >= 3;
+  if (pk.goals > 0) { sfx.fanfare(); burstConfetti([t.terms.bonus.projectile, "🏆", "⭐"], 30); }
+  speak(pk.goals > 0
+    ? `You scored ${pk.goals} goal${pk.goals === 1 ? "" : "s"}! ${allThree ? "A perfect hat trick!" : "Awesome shooting!"}`
+    : `That robot keeper was tough! Earn another ${t.terms.bonus.name} and try again!`);
+  $screen.innerHTML = `
+    <div class="card center" style="margin-top:24px">
+      <div class="reward-banner">${allThree ? "🎩" : pk.goals > 0 ? "🎯" : "🧤"}</div>
+      <h2>${allThree ? "HAT TRICK!" : pk.goals > 0 ? `${pk.goals} Goal${pk.goals === 1 ? "" : "s"}!` : "What a keeper!"}</h2>
+      <div class="burst-wrap">${pk.goals > 0 ? '<div class="burst"></div>' : ""}${avatarHTML(P, 120, true, pk.goals > 0 ? "cheer" : "hero")}</div>
+      ${pk.goals > 0 ? `<div class="reward-line">🪙 +${coins} coins &nbsp; ⭐ +${stars} stars</div>` : `<div class="reward-line">Keep practicing — you'll beat the robot!</div>`}
+    </div>
+    <div class="btn-col">
+      ${P.stats.kickTokens > 0 ? `<button class="btn green big" id="pk-again">🎯 Play Again (×${P.stats.kickTokens})</button>` : ""}
+      <button class="btn ghost big" id="pk-done">🏟️ Back to ${esc(themeOf(P).terms.hub)}</button>
+    </div>
+  `;
+  const again = document.getElementById("pk-again");
+  if (again) again.onclick = () => { sfx.whistle(); startPenalty(); };
+  document.getElementById("pk-done").onclick = showHub;
+  showTrophyPopups(awards);
+}
+
 /* ======================== MY PROGRESS ======================== */
 
 // Compare recent drill accuracy vs earlier drills for one subject.
@@ -1392,7 +1671,7 @@ function showProgress() {
         <div class="total-box"><b>${P.stats.wins}</b><span>matches won</span></div>
         <div class="total-box"><b>${P.stats.rightTotal}</b><span>right answers</span></div>
         <div class="total-box"><b>${P.stats.firstTry}</b><span>first-try ⚡</span></div>
-        <div class="total-box"><b>${P.stars}</b><span>stars ⭐</span></div>
+        <div class="total-box"><b>${P.stats.kicksScored}</b><span>bonus goals 🎯</span></div>
         <div class="total-box"><b>${P.gear.length}/${(t.gear || []).length}</b><span>power-ups</span></div>
       </div>
     </div>

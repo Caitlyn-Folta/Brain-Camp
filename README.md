@@ -65,6 +65,11 @@ rivals win, kids get an upbeat "so close!" screen, a small reward, and a
 one-tap rematch — losing is just a nudge back to training.
 
 ### 4. Earn — rewards every 30–60 seconds
+- 🎯 **Bonus shots**: right answers earn penalty kicks (8 on the Wilder
+  Path, 12 on the Grey Path). Each one is a touch-controlled 3-kick
+  shootout — swipe up on the phone/tablet screen to shoot past the moving
+  robo-keeper for extra coins and stars. Themed per adventure: Penalty
+  Kick, Field Goal, Buzzer Shot, Cannon Blast, or Magic Shot.
 - 🪙 **Coins** after every drill and match
 - ⭐ **Stars** that level your player up (questions get a bit harder as you level)
 - ⚡ **Power-up gear** earned through missions: Golden Cleat, Lightning

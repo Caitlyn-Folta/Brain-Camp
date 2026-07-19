@@ -28,6 +28,9 @@ const PATHS = {
 // XP needed per skill level — Wilder levels up faster than Grey.
 const SKILL_XP_PER_LEVEL = { little: 8, big: 14 };
 
+// Right answers needed to earn one bonus shot (penalty kick etc.).
+const KICK_NEED = { little: 8, big: 12 };
+
 const THEMES = {
   soccer: {
     id: "soccer",
@@ -56,6 +59,7 @@ const THEMES = {
       shop: "Team Shop",
       thingCounted: "⚽",
       problemNouns: ["goals", "passes", "saves"],
+      bonus: { name: "Penalty Kick", action: "Swipe up to kick!", projectile: "⚽" },
     },
     outfits: [
       { id: "yamal", label: "Lamine Yamal", sub: "Stripes #10", number: "10", colors: { body: "#a50044", sleeve: "#004d98", text: "#ffd24a", stripes: ["#a50044", "#004d98"] } },
@@ -122,6 +126,7 @@ const THEMES = {
       shop: "Pro Shop",
       thingCounted: "🏈",
       problemNouns: ["touchdowns", "catches", "yards"],
+      bonus: { name: "Field Goal", action: "Swipe up to kick!", projectile: "🏈" },
     },
     outfits: [
       { id: "mahomes", label: "Mahomes", sub: "Red #15", number: "15", colors: { body: "#e31837", sleeve: "#ffb81c", text: "#ffffff" } },
@@ -188,6 +193,7 @@ const THEMES = {
       shop: "Court Shop",
       thingCounted: "🏀",
       problemNouns: ["baskets", "rebounds", "points"],
+      bonus: { name: "Buzzer Shot", action: "Swipe up to shoot!", projectile: "🏀" },
     },
     outfits: [
       { id: "lebron", label: "LeBron", sub: "Gold #23", number: "23", colors: { body: "#fdb927", sleeve: "#552583", text: "#552583" } },
@@ -254,6 +260,7 @@ const THEMES = {
       shop: "Port Shop",
       thingCounted: "🪙",
       problemNouns: ["gold coins", "jewels", "maps"],
+      bonus: { name: "Cannon Blast", action: "Swipe up to fire!", projectile: "💣" },
     },
     outfits: [
       { id: "red", label: "Captain Red", sub: "Brave coat", symbol: "☠", colors: { body: "#c0392b", sleeve: "#f1c40f", text: "#f1c40f" } },
@@ -318,6 +325,7 @@ const THEMES = {
       shop: "Monster Mart",
       thingCounted: "🫐",
       problemNouns: ["berries", "monsters", "magic stones"],
+      bonus: { name: "Magic Shot", action: "Swipe up to cast!", projectile: "✨" },
     },
     outfits: [
       { id: "spark", label: "Spark Trainer", sub: "Team ⚡", symbol: "★", colors: { body: "#f1c40f", sleeve: "#e67e22", text: "#7d3c00" } },
@@ -433,6 +441,7 @@ const TROPHIES = [
   { id: "super-saver", emoji: "💰", name: "Super Saver", desc: "Save up 100 coins" },
   { id: "star-collector", emoji: "🌟", name: "Star Collector", desc: "Earn 50 stars" },
   { id: "sticker-fan", emoji: "🎨", name: "Sticker Fan", desc: "Collect 8 stickers" },
+  { id: "golden-striker", emoji: "🎯", name: "Golden Striker", desc: "Score 5 bonus-shot goals" },
 ];
 
 const PRAISE_WORDS = ["Awesome!", "Super!", "You got it!", "Amazing!", "Wow!", "Great job!", "Yes!", "Brilliant!", "Nice one!"];
