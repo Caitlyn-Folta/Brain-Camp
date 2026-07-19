@@ -233,6 +233,50 @@ h3 {
 .avatar.bounce { animation: avatarBounce 1s ease infinite; }
 @keyframes avatarBounce { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-6px);} }
 
+/* mini stadium: crowd silhouette rows + pitch behind the hero */
+.stadium-stage {
+  position: relative;
+  border: 2.5px solid var(--out);
+  border-radius: 16px;
+  overflow: hidden;
+  padding: 14px 8px 4px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bg2) 75%, #ffffff) 0%,
+    color-mix(in srgb, var(--bg2) 40%, #ffffff) 46%,
+    color-mix(in srgb, var(--bg1) 92%, #ffffff) 46.5%,
+    color-mix(in srgb, var(--bg1) 85%, #063a1e) 100%);
+}
+/* rows of crowd heads in the stands */
+.stadium-stage::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 30%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle 3.5px at 6px 5px, rgba(18, 26, 62, 0.75) 3px, transparent 4px) 0 2px / 13px 9px repeat,
+    radial-gradient(circle 3.5px at 6px 5px, rgba(47, 60, 116, 0.8) 3px, transparent 4px) 6.5px 6.5px / 13px 9px repeat,
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--bg2) 40%, #8d9bce),
+      color-mix(in srgb, var(--bg2) 25%, #aab6e0));
+  border-bottom: 3px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 3px 6px rgba(27, 36, 80, 0.25);
+}
+/* mowed stripes on the stage pitch */
+.stadium-stage::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 54%;
+  pointer-events: none;
+  background: repeating-linear-gradient(100deg,
+    rgba(255, 255, 255, 0.12) 0 26px, transparent 26px 52px);
+}
+.stadium-stage .burst-wrap { position: relative; z-index: 1; }
+
+/* kicking player inside the score flash */
+.flash-avatar { animation: stickerIn 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); margin-bottom: 6px; }
+
 /* diamond panel + rays behind the hero (matches the comic art) */
 .burst-wrap { position: relative; display: inline-block; }
 .burst {

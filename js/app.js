@@ -244,7 +244,10 @@ function jerseySVG(outfit, size = 90) {
 
 // Full-body cel-shaded player: jersey, shorts, socks, cleats, raised
 // fist, ball at the feet — anime-sports style with bold outlines.
-function playerBodySVG(outfit, size, ballEmoji) {
+// Poses (anime action shots): "hero" fist up with ball, "cheer" both
+// arms up, "hips" confident hands-on-hips, "kick" mid-strike with the
+// ball flying off speed lines.
+function playerBodySVG(outfit, size, ballEmoji, pose = "hero") {
   const c = outfit.colors;
   const label = outfit.number || outfit.symbol || "★";
   const uid = ++__svgUid;
@@ -253,6 +256,55 @@ function playerBodySVG(outfit, size, ballEmoji) {
   const shorts = c.sleeve;
   const sock = c.stripes ? c.stripes[1] : c.body;
   const torso = "M46 24 Q75 36 104 24 L107 92 Q75 100 43 92 Z";
+
+  const arm = (d, fx, fy) => `
+    <path d="${d}" stroke="${OUT}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="${d}" stroke="${skin}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <circle cx="${fx}" cy="${fy}" r="7.5" fill="${skin}" stroke="${OUT}" stroke-width="3"/>`;
+  const leg = (d) => `
+    <path d="${d}" stroke="${OUT}" stroke-width="20" stroke-linecap="round" fill="none"/>
+    <path d="${d}" stroke="${sock}" stroke-width="13" stroke-linecap="round" fill="none"/>`;
+  const cleat = (x, y, rot) => `
+    <rect x="${x}" y="${y}" width="31" height="14" rx="7" fill="#232c52" stroke="${OUT}" stroke-width="3" ${rot ? `transform="rotate(${rot})"` : ""}/>
+    <path d="M${x + 6} ${y + 5} L${x + 24} ${y + 5}" stroke="#ffd24a" stroke-width="2.5" stroke-linecap="round" ${rot ? `transform="rotate(${rot})"` : ""}/>`;
+  const ballAt = (x, y) => `<text x="${x}" y="${y}" font-size="30" text-anchor="middle">${ballEmoji || "⚽"}</text>`;
+
+  const POSES = {
+    hero: {
+      arms: arm("M30 44 L17 72", 16, 76) + arm("M121 42 L134 19", 135, 14),
+      legs: leg("M57 120 L53 158") + leg("M93 120 L99 148"),
+      cleats: cleat(34, 153) + cleat(86, 141, "-14 101 147"),
+      ball: ballAt(116, 177),
+      shadow: 78,
+    },
+    cheer: {
+      arms: arm("M30 42 L15 18", 14, 13) + arm("M120 42 L135 18", 136, 13),
+      legs: leg("M57 120 L53 158") + leg("M93 120 L97 158"),
+      cleats: cleat(34, 153) + cleat(84, 153),
+      ball: ballAt(126, 177),
+      shadow: 76,
+    },
+    hips: {
+      arms: arm("M30 42 L13 60 L36 88", 38, 90) + arm("M120 42 L137 60 L114 88", 112, 90),
+      legs: leg("M57 120 L53 158") + leg("M93 120 L97 158"),
+      cleats: cleat(34, 153) + cleat(84, 153),
+      ball: ballAt(126, 177),
+      shadow: 76,
+    },
+    kick: {
+      arms: arm("M30 44 L14 24", 13, 20) + arm("M120 44 L140 60", 142, 64),
+      legs: leg("M62 118 L56 156") + leg("M90 116 L122 136"),
+      cleats: cleat(36, 151) + cleat(112, 128, "32 127 134"),
+      ball: `
+        <path d="M92 112 L110 106" stroke="rgba(27,36,80,0.45)" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M90 124 L108 120" stroke="rgba(27,36,80,0.45)" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M96 100 L112 92" stroke="rgba(27,36,80,0.45)" stroke-width="3.5" stroke-linecap="round"/>
+        ${ballAt(132, 116)}`,
+      shadow: 66,
+    },
+  };
+  const pz = POSES[pose] || POSES.hero;
+
   let stripes = "";
   if (c.stripes) {
     const n = 6, w = (108 - 42) / n;
@@ -270,31 +322,13 @@ function playerBodySVG(outfit, size, ballEmoji) {
         <stop offset="1" stop-color="#000000" stop-opacity="0.16"/>
       </linearGradient>
     </defs>
-    <ellipse cx="78" cy="183" rx="52" ry="8" fill="rgba(20,30,60,0.2)"/>
-    <!-- left arm (down) -->
-    <path d="M30 44 L17 72" stroke="${OUT}" stroke-width="16" stroke-linecap="round" fill="none"/>
-    <path d="M30 44 L17 72" stroke="${skin}" stroke-width="10" stroke-linecap="round" fill="none"/>
-    <circle cx="16" cy="76" r="7.5" fill="${skin}" stroke="${OUT}" stroke-width="3"/>
-    <!-- right arm (fist raised) -->
-    <path d="M121 42 L134 19" stroke="${OUT}" stroke-width="16" stroke-linecap="round" fill="none"/>
-    <path d="M121 42 L134 19" stroke="${skin}" stroke-width="10" stroke-linecap="round" fill="none"/>
-    <circle cx="135" cy="14" r="7.5" fill="${skin}" stroke="${OUT}" stroke-width="3"/>
-    <!-- legs / socks -->
-    <path d="M57 120 L53 158" stroke="${OUT}" stroke-width="20" stroke-linecap="round" fill="none"/>
-    <path d="M57 120 L53 158" stroke="${sock}" stroke-width="13" stroke-linecap="round" fill="none"/>
-    <path d="M93 120 L99 148" stroke="${OUT}" stroke-width="20" stroke-linecap="round" fill="none"/>
-    <path d="M93 120 L99 148" stroke="${sock}" stroke-width="13" stroke-linecap="round" fill="none"/>
-    <!-- cleats -->
-    <rect x="34" y="153" width="32" height="14" rx="7" fill="#232c52" stroke="${OUT}" stroke-width="3"/>
-    <rect x="86" y="141" width="30" height="13" rx="6.5" fill="#232c52" stroke="${OUT}" stroke-width="3" transform="rotate(-14 101 147)"/>
-    <path d="M40 158 L58 158" stroke="#ffd24a" stroke-width="2.5" stroke-linecap="round"/>
-    <path d="M92 148 L106 144" stroke="#ffd24a" stroke-width="2.5" stroke-linecap="round"/>
-    <!-- shorts -->
+    <ellipse cx="${pz.shadow}" cy="183" rx="52" ry="8" fill="rgba(20,30,60,0.2)"/>
+    ${pz.arms}
+    ${pz.legs}
+    ${pz.cleats}
     <path d="M44 88 L106 88 L112 124 L83 124 L75 108 L67 124 L38 124 Z" fill="${shorts}" stroke="${OUT}" stroke-width="3.5" stroke-linejoin="round"/>
-    <!-- sleeves -->
     <path d="M46 24 L24 35 L31 55 L47 47 Z" fill="${c.sleeve}" stroke="${OUT}" stroke-width="3.5" stroke-linejoin="round"/>
     <path d="M104 24 L126 35 L119 55 L103 47 Z" fill="${c.sleeve}" stroke="${OUT}" stroke-width="3.5" stroke-linejoin="round"/>
-    <!-- torso -->
     <path d="${torso}" fill="${c.body}"/>
     ${stripes ? `<g clip-path="url(#torso${uid})">${stripes}</g>` : ""}
     <path d="${torso}" fill="url(#shine${uid})" stroke="${OUT}" stroke-width="3.5" stroke-linejoin="round"/>
@@ -302,11 +336,11 @@ function playerBodySVG(outfit, size, ballEmoji) {
     <path d="M60 23 Q75 35 90 23" fill="none" stroke="${c.sleeve}" stroke-width="2" stroke-linecap="round"/>
     <text x="75" y="74" text-anchor="middle" font-size="${label.length > 1 ? 28 : 32}" font-weight="900"
       font-family="'Arial Black', Arial, sans-serif" fill="${c.text}" stroke="${OUT}" stroke-width="1.3" paint-order="stroke">${label}</text>
-    <text x="116" y="177" font-size="30" text-anchor="middle">${ballEmoji || "⚽"}</text>
+    ${pz.ball}
   </svg>`;
 }
 
-function avatarHTML(p, size = 100, bounce = false) {
+function avatarHTML(p, size = 100, bounce = false, pose = "hero") {
   const outfit = outfitOf(p);
   const theme = themeOf(p);
   const headSize = Math.round(size * 0.46);
@@ -316,7 +350,7 @@ function avatarHTML(p, size = 100, bounce = false) {
   return `
     <span class="avatar ${bounce ? "bounce" : ""}">
       <span class="head" style="width:${headSize}px;height:${headSize}px">${head}</span>
-      ${playerBodySVG(outfit, size, theme.terms.match.scoreEmoji)}
+      ${playerBodySVG(outfit, size, theme.terms.match.scoreEmoji, pose)}
     </span>`;
 }
 
@@ -728,8 +762,10 @@ function showHub() {
       <div class="chip coins">🪙 ${P.coins}</div>
       <div class="chip stars">⭐ ${P.stars}</div>
     </div>
-    <div class="card center">
-      <div class="burst-wrap"><div class="burst"></div>${avatarHTML(P, 140, true)}</div>
+    <div class="card center" style="padding-top:10px">
+      <div class="stadium-stage">
+        <div class="burst-wrap"><div class="burst"></div>${avatarHTML(P, 140, true)}</div>
+      </div>
       <h2 style="margin:6px 0 0">${esc(P.name)}</h2>
       <div class="subtitle">${t.emoji} ${t.name} • Level ${levelOf(P)}</div>
       <button class="chip" id="path-chip" style="border:none;cursor:pointer;font-family:inherit;margin-top:8px">${pa.emoji} ${esc(pa.name)}</button>
@@ -882,7 +918,7 @@ function finishDrill() {
     <div class="card center" style="margin-top:30px">
       <div class="reward-banner">🎉</div>
       <h2>Drill Complete!</h2>
-      ${avatarHTML(P, 110, true)}
+      ${avatarHTML(P, 110, true, "cheer")}
       <div class="reward-line">${"⭐".repeat(Math.max(1, drill.correct))}</div>
       <div class="reward-line">${drill.correct} / ${drill.tasks.length} right</div>
       <div class="reward-line">🪙 +${coins} coins</div>
@@ -1218,7 +1254,7 @@ function showScoreFlash(forPlayer) {
     burstConfetti([t.scoreEmoji, "🎉", "⭐"]);
     speak(t.scoreWord);
     flash.innerHTML = `
-      <span class="emoji">${t.scoreEmoji}</span>
+      <div class="flash-avatar">${avatarHTML(P, 130, false, "kick")}</div>
       <div class="big">${esc(t.scoreWord)}</div>
       <div style="font-size:1.2rem;font-weight:800;margin-top:8px">Team ${esc(P.name)} scores!</div>`;
   } else {
@@ -1266,7 +1302,7 @@ function finishMatch(won) {
     <div class="card center" style="margin-top:24px">
       <div class="reward-banner">${won ? "🏆" : "💪"}</div>
       <h2>${won ? esc(t.terms.match.winWord) : "So close! What a game!"}</h2>
-      <div class="burst-wrap">${won ? '<div class="burst"></div>' : ""}${avatarHTML(P, 120, true)}</div>
+      <div class="burst-wrap">${won ? '<div class="burst"></div>' : ""}${avatarHTML(P, 120, true, won ? "cheer" : "hero")}</div>
       <div class="reward-line">Final Score: ${match.playerScore} – ${match.rivalScore}</div>
       <div class="reward-line">🪙 +${coins} coins &nbsp; ⭐ +${stars} stars</div>
       ${sticker ? `<div class="reward-line">New sticker! <span class="sticker-reveal">${sticker}</span></div>` : ""}
@@ -1314,7 +1350,7 @@ function showProgress() {
       <h2>📈 My Progress</h2>
     </div>
     <div class="card center">
-      ${avatarHTML(P, 100)}
+      ${avatarHTML(P, 100, false, "hips")}
       <div style="font-weight:800">${esc(P.name)} • ${pa.emoji} ${esc(pa.name)}</div>
     </div>
     <div class="card">
@@ -1374,7 +1410,7 @@ function showLocker() {
       <h2>🏆 ${esc(t.terms.hub)}</h2>
     </div>
     <div class="card center">
-      ${avatarHTML(P, 110)}
+      ${avatarHTML(P, 110, false, "hips")}
       <div style="font-weight:800">${esc(P.name)} • Level ${levelOf(P)}</div>
       <div class="subtitle">🪙 ${P.coins} &nbsp; ⭐ ${P.stars}</div>
     </div>
